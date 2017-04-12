@@ -380,4 +380,55 @@ module.exports = function(Chart) {
 			return this.getMeta().yAxisID;
 		}
 	});
+
+
+	// including horizontalBar in the bar file, instead of a file of its own
+	// it extends bar (like pie extends doughnut)
+	Chart.defaults.fatBar = {
+		hover: {
+			mode: 'label'
+		},
+
+		scales: {
+			xAxes: [{
+				type: 'category',
+
+				// Specific to Bar Controller
+				categoryPercentage: 1,
+				barPercentage: 1,
+
+				// grid line settings
+				gridLines: {
+					display: false
+				}
+			}],
+			yAxes: [{
+				display: false
+			}]
+		}
+	};
+
+	Chart.controllers.fatBar = Chart.controllers.bar.extend({
+		/**
+		 * @private
+		 */
+	 	updateElementGeometry: function(rectangle, index, reset) {
+			var me = this;
+			var model = rectangle._model;
+			var vscale = me.getValueScale();
+			var base = vscale.getBasePixel();
+			var horizontal = vscale.isHorizontal();
+			var ruler = me._ruler || me.getRuler();
+			var vpixels = me.calculateBarValuePixels(me.index, index);
+			var ipixels = me.calculateBarIndexPixels(me.index, index, ruler);
+			console.log('vpixels', vpixels);
+			console.log('ipixels', ipixels);
+			model.horizontal = horizontal;
+			model.base = reset? base : vpixels.base;
+			model.x = horizontal? reset? base : vpixels.head : ipixels.center;
+			model.y = horizontal? ipixels.center : reset? base : vpixels.head;
+			model.height = horizontal? ipixels.size : undefined;
+			model.width = horizontal? undefined : ipixels.size;
+ 		}
+	});
 };
