@@ -2257,11 +2257,13 @@ module.exports = function(Chart) {
 
 				// grid line settings
 				gridLines: {
-					display: false
+					display: false,
+					offsetGridLines: true
 				}
 			}],
 			yAxes: [{
-				display: false
+				display: false,
+				type: 'linear'
 			}]
 		}
 	};
@@ -2279,15 +2281,60 @@ module.exports = function(Chart) {
 			var ruler = me._ruler || me.getRuler();
 			var vpixels = me.calculateBarValuePixels(me.index, index);
 			var ipixels = me.calculateBarIndexPixels(me.index, index, ruler);
-			console.log('vpixels', vpixels);
-			console.log('ipixels', ipixels);
+			var chart = me.chart;
+			var data = chart.data.datasets[me.index].data;
+			var xScale = rectangle._xScale;
+
 			model.horizontal = horizontal;
 			model.base = reset? base : vpixels.base;
-			model.x = horizontal? reset? base : vpixels.head : ipixels.center;
-			model.y = horizontal? ipixels.center : reset? base : vpixels.head;
-			model.height = horizontal? ipixels.size : undefined;
-			model.width = horizontal? undefined : ipixels.size;
- 		}
+			model.width = (data[index] / me.calculateTotalValue()) * xScale.width;
+			model.x = me.calculateBarX(index, xScale, me.calculateTotalValue(), data);
+			model.y = 10;
+ 		},
+		calculateBarX: function(index, xScale, totalValue, data) {
+			var me = this;
+			var ruler = me._ruler || me.getRuler();
+			console.log('me.calculateBarIndexPixels(me.index, index, ruler)', me.calculateBarIndexPixels(me.index, index, ruler));
+			var barX = me.calculateBarIndexPixels(me.index, 0, ruler).base;
+			for (var i = 0; i < index; i++) {
+				barX += xScale.width * (data[i] / totalValue);
+			}
+			barX += (xScale.width * (data[index] / totalValue)) / 2;
+			return barX;
+		},
+		calculateTotalValue: function() {
+			var me = this;
+			var chart = me.chart;
+			var data = chart.data.datasets[me.index].data;
+			return data.reduce(function(left, right) {
+				return left + right;
+			});
+		},
+		/**
+		 * Note: pixel values are not clamped to the scale area.
+		 * @private
+		 */
+		calculateBarValuePixels: function(datasetIndex, index) {
+			var me = this;
+			var chart = me.chart;
+			var meta = me.getMeta();
+			var scale = me.getValueScale();
+			var datasets = chart.data.datasets;
+			var value = Number(datasets[datasetIndex].data[index]);
+			var start = 0;
+			var base, head, size;
+
+			base = scale.getPixelForValue(start);
+			head = scale.getPixelForValue(start + value);
+			size = (head - base) / 2;
+
+			return {
+				size: size,
+				base: base,
+				head: head,
+				center: head + size / 2
+			};
+		}
 	});
 };
 
