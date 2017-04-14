@@ -2277,7 +2277,6 @@ module.exports = function(Chart) {
 			var model = rectangle._model;
 			var vscale = me.getValueScale();
 			var base = vscale.getBasePixel();
-			var horizontal = vscale.isHorizontal();
 			var ruler = me._ruler || me.getRuler();
 			var vpixels = me.calculateBarValuePixels(me.index, index);
 			var ipixels = me.calculateBarIndexPixels(me.index, index, ruler);
@@ -2285,7 +2284,6 @@ module.exports = function(Chart) {
 			var data = chart.data.datasets[me.index].data;
 			var xScale = rectangle._xScale;
 
-			model.horizontal = horizontal;
 			model.base = reset? base : vpixels.base;
 			model.width = (data[index] / me.calculateTotalValue()) * xScale.width;
 			model.x = me.calculateBarX(index, xScale, me.calculateTotalValue(), data);
@@ -2294,7 +2292,6 @@ module.exports = function(Chart) {
 		calculateBarX: function(index, xScale, totalValue, data) {
 			var me = this;
 			var ruler = me._ruler || me.getRuler();
-			console.log('me.calculateBarIndexPixels(me.index, index, ruler)', me.calculateBarIndexPixels(me.index, index, ruler));
 			var barX = me.calculateBarIndexPixels(me.index, 0, ruler).base;
 			for (var i = 0; i < index; i++) {
 				barX += xScale.width * (data[i] / totalValue);
@@ -2309,31 +2306,6 @@ module.exports = function(Chart) {
 			return data.reduce(function(left, right) {
 				return left + right;
 			});
-		},
-		/**
-		 * Note: pixel values are not clamped to the scale area.
-		 * @private
-		 */
-		calculateBarValuePixels: function(datasetIndex, index) {
-			var me = this;
-			var chart = me.chart;
-			var meta = me.getMeta();
-			var scale = me.getValueScale();
-			var datasets = chart.data.datasets;
-			var value = Number(datasets[datasetIndex].data[index]);
-			var start = 0;
-			var base, head, size;
-
-			base = scale.getPixelForValue(start);
-			head = scale.getPixelForValue(start + value);
-			size = (head - base) / 2;
-
-			return {
-				size: size,
-				base: base,
-				head: head,
-				center: head + size / 2
-			};
 		}
 	});
 };
@@ -7742,6 +7714,29 @@ module.exports = function(Chart) {
 				0;
 		},
 
+		calculateTotalValue: function(data) {
+			if (data.length > 0) {
+				return data.reduce(function(left, right) {
+					return left + right;
+				})
+			} else {
+				return data[0];
+			}
+		},
+
+		calculateLabelOffset: function(data, index) {
+			if (data.length > 0) {
+				var total = this.calculateTotalValue(data);
+				var previousValues = 0;
+				for (var i = 0; i < index; i++) {
+					previousValues += data[i];
+				}
+				return this.width * (previousValues / total);
+			} else {
+				return 0;
+			}
+		},
+
 		// Actually draw the scale on the canvas
 		// @param {rectangle} chartArea : the area of the chart to draw full grid lines on
 		draw: function(chartArea) {
@@ -7863,7 +7858,9 @@ module.exports = function(Chart) {
 
 					var xLineValue = me.getPixelForTick(index) + helpers.aliasPixel(lineWidth); // xvalues for grid lines
 					labelX = me.getPixelForTick(index, gridLines.offsetGridLines) + optionTicks.labelOffset; // x values for optionTicks (need to consider offsetLabel option)
-
+					if (me.chart.config.data.datasets[0].labelPositions && me.chart.config.data.datasets[0].labelPositions[index] === 'left') {
+						labelX = me.left + me.calculateLabelOffset(me.chart.config.data.datasets[0].data, index);
+					}
 					tx1 = tx2 = x1 = x2 = xLineValue;
 					ty1 = yTickStart;
 					ty2 = yTickEnd;
