@@ -475,6 +475,29 @@ module.exports = function(Chart) {
 				0;
 		},
 
+		calculateTotalValue: function(data) {
+			if (data.length > 0) {
+				return data.reduce(function(left, right) {
+					return left + right;
+				})
+			} else {
+				return data[0];
+			}
+		},
+
+		calculateLabelOffset: function(data, index) {
+			if (data.length > 0) {
+				var total = this.calculateTotalValue(data);
+				var previousValues = 0;
+				for (var i = 0; i < index; i++) {
+					previousValues += data[i];
+				}
+				return this.width * (previousValues / total);
+			} else {
+				return 0;
+			}
+		},
+
 		// Actually draw the scale on the canvas
 		// @param {rectangle} chartArea : the area of the chart to draw full grid lines on
 		draw: function(chartArea) {
@@ -596,7 +619,9 @@ module.exports = function(Chart) {
 
 					var xLineValue = me.getPixelForTick(index) + helpers.aliasPixel(lineWidth); // xvalues for grid lines
 					labelX = me.getPixelForTick(index, gridLines.offsetGridLines) + optionTicks.labelOffset; // x values for optionTicks (need to consider offsetLabel option)
-
+					if (me.chart.config.data.datasets[0].labelPositions && me.chart.config.data.datasets[0].labelPositions[index] === 'left') {
+						labelX = me.left + me.calculateLabelOffset(me.chart.config.data.datasets[0].data, index);
+					}
 					tx1 = tx2 = x1 = x2 = xLineValue;
 					ty1 = yTickStart;
 					ty2 = yTickEnd;
