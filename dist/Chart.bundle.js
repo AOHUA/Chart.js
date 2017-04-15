@@ -6735,11 +6735,12 @@ module.exports = function(Chart) {
 		/**
 		 * @private
 		 */
-	 	updateElementGeometry: function(rectangle, index, reset) {
+		updateElementGeometry: function(rectangle, index, reset) {
 			var me = this;
 			var model = rectangle._model;
 			var vscale = me.getValueScale();
 			var base = vscale.getBasePixel();
+			var horizontal = vscale.isHorizontal();
 			var ruler = me._ruler || me.getRuler();
 			var vpixels = me.calculateBarValuePixels(me.index, index);
 			var ipixels = me.calculateBarIndexPixels(me.index, index, ruler);
@@ -6747,10 +6748,11 @@ module.exports = function(Chart) {
 			var data = chart.data.datasets[me.index].data;
 			var xScale = rectangle._xScale;
 
+			model.horizontal = horizontal;
 			model.base = reset? base : vpixels.base;
 			model.width = (data[index] / me.calculateTotalValue()) * xScale.width;
-			model.x = me.calculateBarX(index, xScale, me.calculateTotalValue(), data);
-			model.y = 10;
+		  model.x = me.calculateBarX(index, xScale, me.calculateTotalValue(), data);
+		  model.y = horizontal? 10 : reset? base : 10;
  		},
 		calculateBarX: function(index, xScale, totalValue, data) {
 			var me = this;
